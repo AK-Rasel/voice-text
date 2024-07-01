@@ -65,7 +65,7 @@ const VoiceToTextAndTextToVoice = () => {
 
   return (
     <div className="m-5 p-5 border border-gray-300 rounded-lg max-w-lg">
-      <h2 className="text-xl font-bold mb-4">Voice to Text and Text to Voice 😎😊👌</h2>
+      <h2 className="text-xl font-bold mb-4">Voice to Text and Text to Voice Rasel</h2>
       <textarea
         value={message}
         onChange={(e) => setMessage(e.target.value)}
