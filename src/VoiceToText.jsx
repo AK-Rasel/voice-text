@@ -49,19 +49,19 @@ const VoiceToTextAndTextToVoice = () => {
     reader.readAsDataURL(blob);
     reader.onloadend = () => {
       const base64data = reader.result;
-      const recordings = JSON.parse(localStorage.getItem('recordings')) || [];
-      if (recordings.length >= 10) {
-        recordings.shift();
+      const storedRecordings = JSON.parse(localStorage.getItem('recordings')) || [];
+      if (storedRecordings.length >= 10) {
+        storedRecordings.shift(); // Remove the first (oldest) recording if there are 10 or more
       }
-      recordings.push(base64data);
-      localStorage.setItem('recordings', JSON.stringify(recordings));
-      setRecordings(recordings);
+      storedRecordings.push(base64data);
+      localStorage.setItem('recordings', JSON.stringify(storedRecordings));
+      setRecordings(storedRecordings);
     };
   };
 
   const getRecordings = () => {
-    const recordings = JSON.parse(localStorage.getItem('recordings')) || [];
-    setRecordings(recordings);
+    const storedRecordings = JSON.parse(localStorage.getItem('recordings')) || [];
+    setRecordings(storedRecordings);
   };
 
   const playRecording = (base64data) => {
@@ -83,6 +83,13 @@ const VoiceToTextAndTextToVoice = () => {
     window.speechSynthesis.speak(utterance);
   };
 
+  const removeRecording = (index) => {
+    const storedRecordings = JSON.parse(localStorage.getItem('recordings')) || [];
+    storedRecordings.splice(index, 1);
+    localStorage.setItem('recordings', JSON.stringify(storedRecordings));
+    setRecordings(storedRecordings);
+  };
+
   useEffect(() => {
     setMessage(transcript);
     getRecordings();
@@ -90,7 +97,7 @@ const VoiceToTextAndTextToVoice = () => {
 
   return (
     <div className="m-5 p-5 border border-gray-300 rounded-lg max-w-lg">
-      <h2 className="text-xl font-bold mb-4">Voice to Text and Text to Voice Rasel</h2>
+      <h2 className="text-xl font-bold mb-4">Voice to Text and Text to Voice</h2>
       <textarea
         value={message}
         onChange={(e) => setMessage(e.target.value)}
@@ -136,12 +143,20 @@ const VoiceToTextAndTextToVoice = () => {
         {recordings.map((recording, index) => (
           <div key={index} className="flex items-center justify-between mt-2">
             <span>Recording {index + 1}</span>
-            <button
+           <div>
+           <button
               onClick={() => playRecording(recording)}
               className="m-2 p-2 bg-blue-500 text-white rounded"
             >
               Play
             </button>
+            <button
+              onClick={() => removeRecording(index)}
+              className="m-2 p-2 bg-red-500 text-white rounded"
+            >
+              Remove
+            </button>
+           </div>
           </div>
         ))}
       </div>
