@@ -1,5 +1,4 @@
-
-import  { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import RecordRTC, { invokeSaveAsDialog } from 'recordrtc';
 
@@ -9,6 +8,7 @@ const VoiceToTextAndTextToVoice = () => {
   const { transcript, resetTranscript } = useSpeechRecognition();
   const recorder = useRef(null);
   const [mediaStream, setMediaStream] = useState(null);
+  const [recordings, setRecordings] = useState([]);
 
   const startRecording = async () => {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -35,12 +35,38 @@ const VoiceToTextAndTextToVoice = () => {
       recorder.current.stopRecording(() => {
         const audioBlob = recorder.current.getBlob();
         invokeSaveAsDialog(audioBlob, 'recording.wav');
+        saveRecording(audioBlob);
         if (mediaStream) {
           mediaStream.getTracks().forEach((track) => track.stop());
           setMediaStream(null);
         }
       });
     }
+  };
+
+  const saveRecording = (blob) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(blob);
+    reader.onloadend = () => {
+      const base64data = reader.result;
+      const recordings = JSON.parse(localStorage.getItem('recordings')) || [];
+      if (recordings.length >= 10) {
+        recordings.shift();
+      }
+      recordings.push(base64data);
+      localStorage.setItem('recordings', JSON.stringify(recordings));
+      setRecordings(recordings);
+    };
+  };
+
+  const getRecordings = () => {
+    const recordings = JSON.parse(localStorage.getItem('recordings')) || [];
+    setRecordings(recordings);
+  };
+
+  const playRecording = (base64data) => {
+    const audio = new Audio(base64data);
+    audio.play();
   };
 
   const copyToClipboard = () => {
@@ -55,12 +81,11 @@ const VoiceToTextAndTextToVoice = () => {
   const speakText = () => {
     const utterance = new SpeechSynthesisUtterance(message);
     window.speechSynthesis.speak(utterance);
-    console.log(utterance)
-
   };
 
   useEffect(() => {
     setMessage(transcript);
+    getRecordings();
   }, [transcript]);
 
   return (
@@ -106,11 +131,22 @@ const VoiceToTextAndTextToVoice = () => {
           Speak
         </button>
       </div>
+      <div>
+        <h3 className="text-lg font-bold mt-4">Saved Recordings</h3>
+        {recordings.map((recording, index) => (
+          <div key={index} className="flex items-center justify-between mt-2">
+            <span>Recording {index + 1}</span>
+            <button
+              onClick={() => playRecording(recording)}
+              className="m-2 p-2 bg-blue-500 text-white rounded"
+            >
+              Play
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
 
 export default VoiceToTextAndTextToVoice;
-
-
-
