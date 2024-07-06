@@ -7,16 +7,36 @@ import SpeechRecognition, {
 const VoiceToText = () => {
   const [message, setMessage] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const [audioUrl, setAudioUrl] = useState(null);
+  const [audioBlob, setAudioBlob] = useState(null);
   const { transcript, resetTranscript } = useSpeechRecognition();
   const timeoutRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
-  const startRecording = () => {
-    SpeechRecognition.startListening({ continuous: true });
-    setIsRecording(true);
+  const startRecording = async () => {
     resetTranscript();
     setMessage("");
+    audioChunksRef.current = [];
 
-    // Set a timeout to stop recording after 30 seconds if no typing occurs
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorderRef.current = new MediaRecorder(stream);
+
+    mediaRecorderRef.current.ondataavailable = (event) => {
+      audioChunksRef.current.push(event.data);
+    };
+
+    mediaRecorderRef.current.onstop = () => {
+      const audioBlob = new Blob(audioChunksRef.current, { type: "audio/wav" });
+      setAudioBlob(audioBlob);
+      const audioUrl = URL.createObjectURL(audioBlob);
+      setAudioUrl(audioUrl);
+    };
+
+    mediaRecorderRef.current.start();
+    SpeechRecognition.startListening({ continuous: true });
+    setIsRecording(true);
+
     timeoutRef.current = setTimeout(() => {
       endRecording();
     }, 30000);
@@ -26,7 +46,13 @@ const VoiceToText = () => {
     SpeechRecognition.stopListening();
     setIsRecording(false);
 
-    // Clear the timeout when recording stops
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== "inactive"
+    ) {
+      mediaRecorderRef.current.stop();
+    }
+
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
@@ -38,7 +64,7 @@ const VoiceToText = () => {
 
   const textHandleChange = (e) => {
     setMessage(e.target.value);
-    endRecording(); // Stop recording when user types
+    endRecording();
   };
 
   const speakText = (text) => {
@@ -52,9 +78,47 @@ const VoiceToText = () => {
     }
   }, [isRecording, message]);
 
+  const sendDataToServer = async () => {
+    if (!audioBlob) {
+      console.error("Audio blob is not available");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("text", message);
+    formData.append("audio", new File([audioBlob], "recording.wav"));
+
+    try {
+      const response = await fetch("http://localhost:5000/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        console.log("Data sent successfully");
+      } else {
+        console.error("Failed to send data");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      sendDataToServer();
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [message, audioBlob]);
+
   return (
     <div>
-      {/* Animated Bars */}
       <div className={`bars-container h-60 ${isRecording ? "show" : "hide"}`}>
         <div className="bars">
           <div className="bar"></div>
@@ -65,7 +129,6 @@ const VoiceToText = () => {
         </div>
       </div>
       <div className="flex gap-5">
-        {/* Button */}
         <div>
           {isRecording ? (
             <button
@@ -83,15 +146,21 @@ const VoiceToText = () => {
             </button>
           )}
         </div>
-        {/* Text Area */}
         <textarea
           className="border rounded-md px-5 place-content-center w-96 resize-none"
           placeholder="Speech"
           value={message}
           onChange={textHandleChange}
-          onFocus={endRecording} // Stop recording when textarea is focused
+          onFocus={endRecording}
         />
       </div>
+      {audioUrl && (
+        <a href={audioUrl} download="recording.wav">
+          <button className="btn rounded-xl btn-xs sm:btn-sm md:btn-md">
+            Download Audio
+          </button>
+        </a>
+      )}
     </div>
   );
 };
