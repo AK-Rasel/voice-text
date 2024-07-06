@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FaMicrophone, FaStop } from "react-icons/fa";
 import SpeechRecognition, {
   useSpeechRecognition,
@@ -8,17 +8,28 @@ const VoiceToText = () => {
   const [message, setMessage] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const { transcript, resetTranscript } = useSpeechRecognition();
+  const timeoutRef = useRef(null);
 
   const startRecording = () => {
     SpeechRecognition.startListening({ continuous: true });
     setIsRecording(true);
     resetTranscript();
     setMessage("");
+
+    // Set a timeout to stop recording after 30 seconds if no typing occurs
+    timeoutRef.current = setTimeout(() => {
+      endRecording();
+    }, 30000);
   };
 
   const endRecording = () => {
     SpeechRecognition.stopListening();
     setIsRecording(false);
+
+    // Clear the timeout when recording stops
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
   };
 
   useEffect(() => {
@@ -27,6 +38,7 @@ const VoiceToText = () => {
 
   const textHandleChange = (e) => {
     setMessage(e.target.value);
+    endRecording(); // Stop recording when user types
   };
 
   const speakText = (text) => {
@@ -77,6 +89,7 @@ const VoiceToText = () => {
           placeholder="Speech"
           value={message}
           onChange={textHandleChange}
+          onFocus={endRecording} // Stop recording when textarea is focused
         />
       </div>
     </div>
