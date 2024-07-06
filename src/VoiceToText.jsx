@@ -28,6 +28,18 @@ const VoiceToText = () => {
   const textHandleChange = (e) => {
     setMessage(e.target.value);
   };
+
+  const speakText = (text) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  useEffect(() => {
+    if (!isRecording && message) {
+      speakText(message);
+    }
+  }, [isRecording, message]);
+
   return (
     <div>
       {/* Animated Bars */}
