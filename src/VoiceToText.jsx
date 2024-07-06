@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { FaMicrophone, FaStop } from "react-icons/fa";
 import SpeechRecognition, {
   useSpeechRecognition,
@@ -12,7 +12,6 @@ const VoiceToText = () => {
   const startRecording = () => {
     SpeechRecognition.startListening({ continuous: true });
     setIsRecording(true);
-
     resetTranscript();
     setMessage("");
   };
@@ -22,54 +21,52 @@ const VoiceToText = () => {
     setIsRecording(false);
   };
 
-  // const copyToClipboard = () => {
-  //   navigator.clipboard.writeText(message);
-  // };
-
-  // const clearText = () => {
-  //   resetTranscript();
-  //   setMessage('');
-  // };
-
   useEffect(() => {
     setMessage(transcript);
   }, [transcript]);
 
-  const textHandleChange = (event) => {
-    message(event.target.value);
-    //input Adjust the height based on the scroll height
-    event.target.style.height = "auto";
-    event.target.style.height = `${event.target.scrollHeight}px`;
+  const textHandleChange = (e) => {
+    setMessage(e.target.value);
   };
-
   return (
-    <div className="flex gap-5">
-      {/* btn */}
-      <div>
-        {isRecording ? (
-          <button
-            onClick={endRecording}
-            className="btn rounded-xl btn-xs sm:btn-sm md:btn-md "
-          >
-            <FaStop className="text-lg" />
-          </button>
-        ) : (
-          <button
-            onClick={startRecording}
-            className="btn rounded-xl btn-xs sm:btn-sm md:btn-md "
-          >
-            <FaMicrophone className="text-2xl" />
-          </button>
-        )}
+    <div>
+      {/* Animated Bars */}
+      <div className={`bars-container h-60 ${isRecording ? "show" : "hide"}`}>
+        <div className="bars">
+          <div className="bar"></div>
+          <div className="bar"></div>
+          <div className="bar"></div>
+          <div className="bar"></div>
+          <div className="bar"></div>
+        </div>
       </div>
-      {/* text area */}
-      <textarea
-        className="border rounded-md px-5 place-content-center w-96  resize-none"
-        placeholder="Speech"
-        value={message}
-        onChange={textHandleChange}
-        style={{ minHeight: "2rem" }} // Set minimum height
-      />
+      <div className="flex gap-5">
+        {/* Button */}
+        <div>
+          {isRecording ? (
+            <button
+              onClick={endRecording}
+              className="btn rounded-xl btn-xs sm:btn-sm md:btn-md"
+            >
+              <FaStop className="text-lg" />
+            </button>
+          ) : (
+            <button
+              onClick={startRecording}
+              className="btn rounded-xl btn-xs sm:btn-sm md:btn-md"
+            >
+              <FaMicrophone className="text-2xl" />
+            </button>
+          )}
+        </div>
+        {/* Text Area */}
+        <textarea
+          className="border rounded-md px-5 place-content-center w-96 resize-none"
+          placeholder="Speech"
+          value={message}
+          onChange={textHandleChange}
+        />
+      </div>
     </div>
   );
 };
