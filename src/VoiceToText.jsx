@@ -26,11 +26,12 @@ const VoiceToText = () => {
       audioChunksRef.current.push(event.data);
     };
 
-    mediaRecorderRef.current.onstop = () => {
+    mediaRecorderRef.current.onstop = async () => {
       const audioBlob = new Blob(audioChunksRef.current, { type: "audio/wav" });
       setAudioBlob(audioBlob);
       const audioUrl = URL.createObjectURL(audioBlob);
       setAudioUrl(audioUrl);
+      await sendDataToServer(audioBlob, transcript); // Send data after recording stops
     };
 
     mediaRecorderRef.current.start();
@@ -39,7 +40,7 @@ const VoiceToText = () => {
 
     timeoutRef.current = setTimeout(() => {
       endRecording();
-    }, 30000);
+    }, 30000); // Automatically stop after 30 seconds
   };
 
   const endRecording = () => {
@@ -64,7 +65,7 @@ const VoiceToText = () => {
 
   const textHandleChange = (e) => {
     setMessage(e.target.value);
-    endRecording();
+    endRecording(); // End recording when user starts typing manually
   };
 
   const speakText = (text) => {
@@ -78,15 +79,20 @@ const VoiceToText = () => {
     }
   }, [isRecording, message]);
 
-  const sendDataToServer = async () => {
+  const sendDataToServer = async (audioBlob, text) => {
     if (!audioBlob) {
       console.error("Audio blob is not available");
       return;
     }
 
     const formData = new FormData();
-    formData.append("text", message);
+    formData.append("text", text);
     formData.append("audio", new File([audioBlob], "recording.wav"));
+
+    // Log FormData keys
+    for (let key of formData.keys()) {
+      console.log(key);
+    }
 
     try {
       const response = await fetch("http://localhost:5000/upload", {
@@ -103,19 +109,6 @@ const VoiceToText = () => {
       console.error("Error:", error);
     }
   };
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      sendDataToServer();
-    }
-  };
-
-  useEffect(() => {
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [message, audioBlob]);
 
   return (
     <div>
@@ -155,7 +148,9 @@ const VoiceToText = () => {
         />
       </div>
       {audioUrl && (
-        <a href={audioUrl} download="recording.wav">
+        <a href={audioUrl} download="recording.mp3">
+          {" "}
+          {/* Changed to .mp3 */}
           <button className="btn rounded-xl btn-xs sm:btn-sm md:btn-md">
             Download Audio
           </button>
